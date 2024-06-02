@@ -1,0 +1,7 @@
+{
+    "callable": "PixelCat",
+    "name": "Pixel Cat",
+    "category": "unknown",
+    "hidden": false,
+    "path": "apps.pixelcat.app"
+}

@@ -59,16 +59,32 @@ class Anim(object):
         return True
 
 class SingleFrameAnim(Anim):
-    len = 700
+    frame_len = 700
     def __init__(self, pallet):
         super().__init__(pallet)
 
     def update(self, delta):
-        self.len = self.len - delta
+        self.frame_len = self.frame_len - delta
     
     def isDone(self):
-        return self.len <= 0
+        return self.frame_len <= 0
     
+class MultFrameAnim(Anim):
+    frame_len = 300
+    frames = 6
+
+    def __init__(self, pallet):
+        super().__init__(pallet)
+        self.timer = self.frame_len
+
+    def update(self, delta):
+        self.timer = self.timer - delta
+        if self.timer <= 0:
+            self.frames = self.frames -1
+            self.timer = self.frame_len
+    
+    def isDone(self):
+        return self.frames <= 0
 
 class Face(Anim):
     def frame(self, ctx):
@@ -85,7 +101,7 @@ class Blink(SingleFrameAnim):
         self.draw_pixel(ctx, 2, EYE_OFFSET + 1, x_count=3, colour=self.pallet.eye)
 
 class Wink(SingleFrameAnim):
-    len = 1100
+    frame_len = 1100
 
     def __init__(self, pallet):
         super().__init__(pallet)
@@ -158,25 +174,35 @@ class EarTwitch(SingleFrameAnim):
     
 FACE_ANIMATIONS.append(EarTwitch)
 
-class Idea(SingleFrameAnim):
-    len = 1000
+class Idea(MultFrameAnim):
+    frame_len = 300
+    frames = 6
     def frame(self, ctx):
         self.draw_ears(ctx)
+
+        if self.frames % 2:
+            white = (0.7, 0.7, 0.7)
+            yellow = (0.8, 0.7, 0.0)
+        else:
+            white = (1.0, 1.0, 1.0)
+            yellow = (1.0, 1.0, 0.0)
+
 
         self.draw_pixel(ctx, -4, EYE_OFFSET -1, x_count=2, y_count=3, colour=self.pallet.eye)
         self.draw_pixel(ctx, 3, EYE_OFFSET -1, x_count=2, y_count=3, colour=self.pallet.eye)
 
-        self.draw_pixel(ctx, -1, CAT_OFFSET -7, x_count=3, colour=(1.0, 1.0, 1.0))
-        self.draw_pixel(ctx, -2, CAT_OFFSET -6, x_count=5, y_count=3, colour=(1.0, 1.0, 1.0))
-        self.draw_pixel(ctx, -1, CAT_OFFSET -3, x_count=3, colour=(1.0, 1.0, 1.0))
+        self.draw_pixel(ctx, -1, CAT_OFFSET -7, x_count=3, colour=white)
+        self.draw_pixel(ctx, -2, CAT_OFFSET -6, x_count=5, y_count=3, colour=white)
+        self.draw_pixel(ctx, -1, CAT_OFFSET -3, x_count=3, colour=white)
 
-        self.draw_pixel(ctx, 0, CAT_OFFSET -5, y_count=3, colour=(1.0, 1.0, 0))
+        self.draw_pixel(ctx, 0, CAT_OFFSET -5, y_count=3, colour=yellow)
         self.draw_pixel(ctx, -1, CAT_OFFSET -2, x_count=3, colour=(0.9, 0.8, 0))
+
 
 FACE_ANIMATIONS.append(Idea)
 
 class Exclaim(SingleFrameAnim):
-    len = 1000
+    frame_len = 1000
     def frame(self, ctx):
         self.draw_ears(ctx)
 
@@ -192,19 +218,7 @@ class Exclaim(SingleFrameAnim):
 
 FACE_ANIMATIONS.append(Exclaim)
 
-class Stars(Anim):
-    len = 300
-    frames = 6
-
-    def update(self, delta):
-        self.len = self.len - delta
-        if self.len <= 0:
-            self.frames = self.frames -1
-            self.len = 300
-    
-    def isDone(self):
-        return  self.frames <= 0
-
+class Stars(MultFrameAnim):
     def frame(self, ctx):
         self.draw_ears(ctx)
 
@@ -212,11 +226,11 @@ class Stars(Anim):
         self.draw_pixel(ctx, -4, EYE_OFFSET - 1, x_count=3, y_count=3, colour=white)
         self.draw_pixel(ctx, 2, EYE_OFFSET -1, x_count=3, y_count=3, colour=white)
 
-        self.draw_pixel(ctx, -3, EYE_OFFSET - 1, y_count=3, colour=self.pallet.bg)
-        self.draw_pixel(ctx, 3, EYE_OFFSET -1, y_count=3, colour=self.pallet.bg)
+        self.draw_pixel(ctx, -3, EYE_OFFSET - 1, y_count=3, colour=self.pallet.eye)
+        self.draw_pixel(ctx, 3, EYE_OFFSET -1, y_count=3, colour=self.pallet.eye)
 
-        self.draw_pixel(ctx, -4, EYE_OFFSET, x_count=3, colour=self.pallet.bg)
-        self.draw_pixel(ctx, 2, EYE_OFFSET, x_count=3, colour=self.pallet.bg)
+        self.draw_pixel(ctx, -4, EYE_OFFSET, x_count=3, colour=self.pallet.eye)
+        self.draw_pixel(ctx, 2, EYE_OFFSET, x_count=3, colour=self.pallet.eye)
 
         yellow = (1.0, 1.0, 0.0)
         if self.frames % 2:
@@ -257,9 +271,9 @@ class PixelCat(app.App):
         elif self.button_states.get(BUTTON_TYPES["UP"]):
             self.button_states.clear()
             self.set_random_animation()
-        # elif self.button_states.get(BUTTON_TYPES["CONFIRM"]):
-        #     self.button_states.clear()
-        #     self.animation = Stars(self.pallet)
+        elif self.button_states.get(BUTTON_TYPES["CONFIRM"]):
+            self.button_states.clear()
+            self.animation = Idea(self.pallet)
         elif self.animation:
             self.animation.update(delta)
 

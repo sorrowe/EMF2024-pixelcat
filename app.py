@@ -192,6 +192,45 @@ class Exclaim(SingleFrameAnim):
 
 FACE_ANIMATIONS.append(Exclaim)
 
+class Stars(Anim):
+    len = 300
+    frames = 6
+
+    def update(self, delta):
+        self.len = self.len - delta
+        if self.len <= 0:
+            self.frames = self.frames -1
+            self.len = 300
+    
+    def isDone(self):
+        return  self.frames <= 0
+
+    def frame(self, ctx):
+        self.draw_ears(ctx)
+
+        white = (1.0, 1.0, 1.0)
+        self.draw_pixel(ctx, -4, EYE_OFFSET - 1, x_count=3, y_count=3, colour=white)
+        self.draw_pixel(ctx, 2, EYE_OFFSET -1, x_count=3, y_count=3, colour=white)
+
+        self.draw_pixel(ctx, -3, EYE_OFFSET - 1, y_count=3, colour=self.pallet.bg)
+        self.draw_pixel(ctx, 3, EYE_OFFSET -1, y_count=3, colour=self.pallet.bg)
+
+        self.draw_pixel(ctx, -4, EYE_OFFSET, x_count=3, colour=self.pallet.bg)
+        self.draw_pixel(ctx, 2, EYE_OFFSET, x_count=3, colour=self.pallet.bg)
+
+        yellow = (1.0, 1.0, 0.0)
+        if self.frames % 2:
+            self.draw_pixel(ctx, -3, CAT_OFFSET -6, colour=yellow)
+            self.draw_pixel(ctx, 2, CAT_OFFSET -4, colour=yellow)
+        else:
+            self.draw_pixel(ctx, -4, CAT_OFFSET -6, x_count=3, colour=yellow)
+            self.draw_pixel(ctx, -3, CAT_OFFSET -7, y_count=4, colour=yellow)
+
+            self.draw_pixel(ctx, 1, CAT_OFFSET -4, x_count=3, colour=yellow)
+            self.draw_pixel(ctx, 2, CAT_OFFSET -5, y_count=3, colour=yellow)
+
+FACE_ANIMATIONS.append(Stars)
+
 class PixelCat(app.App):
 
     def __init__(self):
@@ -218,6 +257,9 @@ class PixelCat(app.App):
         elif self.button_states.get(BUTTON_TYPES["UP"]):
             self.button_states.clear()
             self.set_random_animation()
+        # elif self.button_states.get(BUTTON_TYPES["CONFIRM"]):
+        #     self.button_states.clear()
+        #     self.animation = Stars(self.pallet)
         elif self.animation:
             self.animation.update(delta)
 

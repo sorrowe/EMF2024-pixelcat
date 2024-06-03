@@ -8,33 +8,202 @@ import random
 
 PX_SIZE = 10
 PX_SIZE_H = 5
+CAT_OFFSET = -2
+EYE_OFFSET = CAT_OFFSET + 3
+FACE_ANIMATIONS = [] 
 
-BLINK = 1
-WINK_L = 2
-WINK_R = 3
-EAR_TWITCH_L = 4
-EAR_TWITCH_R = 5
-IDEA = 6
-EXCLAIM = 7
-FACE_ANIMATIONS = (WINK_L, WINK_R, EAR_TWITCH_L, EAR_TWITCH_R, IDEA, EXCLAIM)
+class Pallet(object):
+    def __init__(self, 
+                 bg=(0, 0.2, 0.2), 
+                 fg = (0, 1, 0), 
+                 eye = (0, 0, 0),
+                 scan = (0,0,0)):
+        self.bg = bg
+        self.fg = fg
+        self.eye = eye
+        self.scan = scan
 
+class Anim(object):
+    def __init__(self, pallet):
+        self.pallet = pallet
 
+    def draw_pixel(self, ctx, x, y, x_count=1, y_count=1, colour=None):
+        if colour is None:
+            colour = self.pallet.fg
+        x_loc = PX_SIZE*x - PX_SIZE_H
+        y_loc = PX_SIZE*y - PX_SIZE_H
+        ctx.rgb(*colour).rectangle(x_loc, y_loc, PX_SIZE*x_count, PX_SIZE*y_count).fill()
+    
+    def draw_ears(self, ctx):
+        # Ear L
+        self.draw_pixel(ctx, -6, CAT_OFFSET -1, x_count=3)
+        self.draw_pixel(ctx, -6, CAT_OFFSET -2, x_count=2)
+        self.draw_pixel(ctx, -6, CAT_OFFSET -3)
+        # Ear R
+        self.draw_pixel(ctx, 4, CAT_OFFSET -1, x_count=3)
+        self.draw_pixel(ctx, 5, CAT_OFFSET -2, x_count=2)
+        self.draw_pixel(ctx, 6, CAT_OFFSET -3)
+    
+    def draw_eyes(self, ctx):
+        self.draw_pixel(ctx, -4, EYE_OFFSET, x_count=2, y_count=2, colour=self.pallet.eye)
+        self.draw_pixel(ctx, 3, EYE_OFFSET, x_count=2, y_count=2, colour=self.pallet.eye)
+
+    def update(self, delta):
+        pass
+
+    def frame(self, ctx):
+        self.draw_ears(ctx)
+        self.draw_eyes(ctx)
+
+    def done(self):
+        return True
+
+class SingleFrameAnim(Anim):
+    len = 700
+    def __init__(self, pallet):
+        super().__init__(pallet)
+
+    def update(self, delta):
+        self.len = self.len - delta
+    
+    def isDone(self):
+        return self.len <= 0
+    
+
+class Face(Anim):
+    def frame(self, ctx):
+        self.draw_pixel(ctx, -6, CAT_OFFSET, x_count=13, y_count=6)
+        self.draw_pixel(ctx, -5, CAT_OFFSET+6, x_count=11)
+        self.draw_pixel(ctx, -4, CAT_OFFSET+7, x_count=9)
+
+class Blink(SingleFrameAnim):
+    
+    def frame(self, ctx):
+        self.draw_ears(ctx)
+
+        self.draw_pixel(ctx, -4, EYE_OFFSET + 1, x_count=3, colour=self.pallet.eye)
+        self.draw_pixel(ctx, 2, EYE_OFFSET + 1, x_count=3, colour=self.pallet.eye)
+
+class Wink(SingleFrameAnim):
+    len = 1100
+
+    def __init__(self, pallet):
+        super().__init__(pallet)
+        self.variant = random.randint(0,1)
+    
+    def wink_l(self, ctx):
+        self.draw_pixel(ctx, -4, EYE_OFFSET, x_count=2, colour=self.pallet.eye)
+        self.draw_pixel(ctx, -3, EYE_OFFSET + 1, colour=self.pallet.eye)
+        self.draw_pixel(ctx, 3, EYE_OFFSET, x_count=2, y_count=2, colour=self.pallet.eye)
+
+        self.draw_pixel(ctx, -8, CAT_OFFSET + 3, colour=(0.9,0,0))
+        self.draw_pixel(ctx, -10, CAT_OFFSET + 3, colour=(0.9,0,0))
+        self.draw_pixel(ctx, -10, CAT_OFFSET + 4, x_count=3, colour=(0.7,0,0))
+        self.draw_pixel(ctx, -9, CAT_OFFSET + 5, colour=(0.5,0,0))
+
+    def wink_r(self, ctx):
+        self.draw_pixel(ctx, -4, EYE_OFFSET, x_count=2, y_count=2, colour=self.pallet.eye)
+        self.draw_pixel(ctx, 3, EYE_OFFSET, x_count=2, colour=self.pallet.eye)
+        self.draw_pixel(ctx, 3, EYE_OFFSET +1, colour=self.pallet.eye)
+
+        self.draw_pixel(ctx, 8, CAT_OFFSET + 1, colour=(1,0.5,0.5))
+        self.draw_pixel(ctx, 10, CAT_OFFSET + 1, colour=(1,0.5,0.5))
+        self.draw_pixel(ctx, 8, CAT_OFFSET + 2, x_count=3, colour=(1,0.5,0.5))
+        self.draw_pixel(ctx, 9, CAT_OFFSET + 3, colour=(1,0.5,0.5))
+    
+    def frame(self, ctx):
+        self.draw_ears(ctx)
+
+        if self.variant:
+            self.wink_l(ctx)
+        else:
+            self.wink_r(ctx)
+
+FACE_ANIMATIONS.append(Wink)
+
+class EarTwitch(SingleFrameAnim):
+    def __init__(self, pallet):
+        super().__init__(pallet)
+        self.variant = random.randint(0,1)
+    
+    def ear_l(self, ctx):
+        # Ear L
+        self.draw_pixel(ctx, -5, CAT_OFFSET -1, x_count=3)
+        self.draw_pixel(ctx, -4, CAT_OFFSET -2, x_count=2)
+        self.draw_pixel(ctx, -3, CAT_OFFSET -3)
+        self.draw_pixel(ctx, -6, CAT_OFFSET, colour=self.pallet.bg)
+        # Ear R
+        self.draw_pixel(ctx, 4, CAT_OFFSET -1, x_count=3)
+        self.draw_pixel(ctx, 5, CAT_OFFSET -2, x_count=2)
+        self.draw_pixel(ctx, 6, CAT_OFFSET -3)
+    
+    def ear_r(self, ctx):
+        # Ear L
+        self.draw_pixel(ctx, -6, CAT_OFFSET -1, x_count=3)
+        self.draw_pixel(ctx, -6, CAT_OFFSET -2, x_count=2)
+        self.draw_pixel(ctx, -6, CAT_OFFSET -3)
+        # Ear R
+        self.draw_pixel(ctx, 3, CAT_OFFSET -1, x_count=3)
+        self.draw_pixel(ctx, 3, CAT_OFFSET -2, x_count=2)
+        self.draw_pixel(ctx, 3, CAT_OFFSET -3)
+        self.draw_pixel(ctx, 6, CAT_OFFSET, colour=self.pallet.bg)
+
+    def frame(self, ctx):
+        self.draw_eyes(ctx)
+
+        if self.variant:
+            self.ear_l(ctx)
+        else:
+            self.ear_r(ctx)
+    
+FACE_ANIMATIONS.append(EarTwitch)
+
+class Idea(SingleFrameAnim):
+    len = 1000
+    def frame(self, ctx):
+        self.draw_ears(ctx)
+
+        self.draw_pixel(ctx, -4, EYE_OFFSET -1, x_count=2, y_count=3, colour=self.pallet.eye)
+        self.draw_pixel(ctx, 3, EYE_OFFSET -1, x_count=2, y_count=3, colour=self.pallet.eye)
+
+        self.draw_pixel(ctx, -1, CAT_OFFSET -7, x_count=3, colour=(1.0, 1.0, 1.0))
+        self.draw_pixel(ctx, -2, CAT_OFFSET -6, x_count=5, y_count=3, colour=(1.0, 1.0, 1.0))
+        self.draw_pixel(ctx, -1, CAT_OFFSET -3, x_count=3, colour=(1.0, 1.0, 1.0))
+
+        self.draw_pixel(ctx, 0, CAT_OFFSET -5, y_count=3, colour=(1.0, 1.0, 0))
+        self.draw_pixel(ctx, -1, CAT_OFFSET -2, x_count=3, colour=(0.9, 0.8, 0))
+
+FACE_ANIMATIONS.append(Idea)
+
+class Exclaim(SingleFrameAnim):
+    len = 1000
+    def frame(self, ctx):
+        self.draw_ears(ctx)
+
+        self.draw_pixel(ctx, -4, EYE_OFFSET -1, x_count=2, y_count=3, colour=self.pallet.eye)
+        self.draw_pixel(ctx, 3, EYE_OFFSET -1, x_count=2, y_count=3, colour=self.pallet.eye)
+
+        blue = (0.0, 0.5, 1.0)
+
+        self.draw_pixel(ctx, 0, CAT_OFFSET -8, colour=blue)
+        self.draw_pixel(ctx, -1, CAT_OFFSET -7, x_count=3, y_count=2, colour=blue)
+        self.draw_pixel(ctx, 0, CAT_OFFSET -5, y_count=2, colour=blue)
+        self.draw_pixel(ctx, 0, CAT_OFFSET -2, colour=blue)
+
+FACE_ANIMATIONS.append(Exclaim)
 
 class PixelCat(app.App):
 
     def __init__(self):
         self.button_states = Buttons(self)
 
-        self.bg = (0, 0.2, 0.2)
-        self.fg = (0, 1, 0)
-        self.eye = (0, 0, 0)
-        self.scan = (0,0,0)
+        self.pallet = Pallet()
         
-        self.next_anim = 0
+        self.next_anim = 500
         self.animation = None
 
-        self.cat_offset = -2
-        self.eye_offset = self.cat_offset + 3
+        self.base_face = Face(self.pallet)
+        self.base_extras = Anim(self.pallet)
 
     def update(self, delta):
 
@@ -42,152 +211,45 @@ class PixelCat(app.App):
         if self.button_states.get(BUTTON_TYPES["CANCEL"]):
             self.button_states.clear()
             self.minimise()
-        
+
         if self.button_states.get(BUTTON_TYPES["DOWN"]):
-            self.animation = BLINK
-            self.next_anim = -499
-        elif self.button_states.get(BUTTON_TYPES["UP"]) and self.animation is None:
+            self.button_states.clear()
+            self.animation = Blink(self.pallet)
+        elif self.button_states.get(BUTTON_TYPES["UP"]):
             self.button_states.clear()
             self.set_random_animation()
-            self.next_anim = -1
+        elif self.animation:
+            self.animation.update(delta)
+
+            if self.animation.isDone():
+                self.animation = None
+                self.resetAnimTimer()
         else:
             self.next_anim = self.next_anim - delta
-
-        if self.next_anim < -700:
-            self.resetAnimTimer()
-            self.animation = None
-        elif self.next_anim < 0 and self.animation is None:
-            if random.randint(1,5) is 5:
-                self.set_random_animation()
-            else:
-                self.animation = BLINK
-
-    # -12 to + 12
-    def draw_pixel(self, ctx, x, y, x_count=1, y_count=1, colour=None):
-        if colour is None:
-            colour = self.fg
-        x_loc = PX_SIZE*x - PX_SIZE_H
-        y_loc = PX_SIZE*y - PX_SIZE_H
-        ctx.rgb(*colour).rectangle(x_loc,y_loc,PX_SIZE*x_count,PX_SIZE*y_count).fill()
+            if self.next_anim <= 0:
+                if random.randint(1, 5) is 5:
+                    self.set_random_animation()
+                else:
+                    self.animation = Blink(self.pallet)
 
     def set_random_animation(self):
-        self.animation = random.choice(FACE_ANIMATIONS)
+        anim_class = random.choice(FACE_ANIMATIONS)
+        self.animation = anim_class(self.pallet)
 
     def resetAnimTimer(self):
         self.next_anim = random.randint(1000, 7000)
-
-    def draw_eyes(self, ctx):
-        self.draw_pixel(ctx, -4, self.eye_offset, x_count=2, y_count=2, colour=self.eye)
-        self.draw_pixel(ctx, 3, self.eye_offset, x_count=2, y_count=2, colour=self.eye)
-
-    def draw_idea(self, ctx):
-        self.draw_pixel(ctx, -4, self.eye_offset -1, x_count=2, y_count=3, colour=self.eye)
-        self.draw_pixel(ctx, 3, self.eye_offset -1, x_count=2, y_count=3, colour=self.eye)
-
-        self.draw_pixel(ctx, -1, self.cat_offset -7, x_count=3, colour=(1.0, 1.0, 1.0))
-        self.draw_pixel(ctx, -2, self.cat_offset -6, x_count=5, y_count=3, colour=(1.0, 1.0, 1.0))
-        self.draw_pixel(ctx, -1, self.cat_offset -3, x_count=3, colour=(1.0, 1.0, 1.0))
-
-        self.draw_pixel(ctx, 0, self.cat_offset -5, y_count=3, colour=(1.0, 1.0, 0))
-        self.draw_pixel(ctx, -1, self.cat_offset -2, x_count=3, colour=(0.9, 0.8, 0))
-    
-    def draw_exclaim(self, ctx):
-        self.draw_pixel(ctx, -4, self.eye_offset -1, x_count=2, y_count=3, colour=self.eye)
-        self.draw_pixel(ctx, 3, self.eye_offset -1, x_count=2, y_count=3, colour=self.eye)
-
-        blue = (0.0, 0.5, 1.0)
-
-        self.draw_pixel(ctx, 0, self.cat_offset -8, colour=blue)
-        self.draw_pixel(ctx, -1, self.cat_offset -7, x_count=3, y_count=2, colour=blue)
-        self.draw_pixel(ctx, 0, self.cat_offset -5, y_count=2, colour=blue)
-        self.draw_pixel(ctx, 0, self.cat_offset -2, colour=blue)
-
-    def draw_wink_l(self, ctx):
-        self.draw_pixel(ctx, -4, self.eye_offset, x_count=2, colour=self.eye)
-        self.draw_pixel(ctx, -3, self.eye_offset + 1, colour=self.eye)
-        self.draw_pixel(ctx, 3, self.eye_offset, x_count=2, y_count=2, colour=self.eye)
-
-        self.draw_pixel(ctx, -8, self.cat_offset + 3, colour=(0.9,0,0))
-        self.draw_pixel(ctx, -10, self.cat_offset + 3, colour=(0.9,0,0))
-        self.draw_pixel(ctx, -10, self.cat_offset + 4, x_count=3, colour=(0.7,0,0))
-        self.draw_pixel(ctx, -9, self.cat_offset + 5, colour=(0.5,0,0))
-
-    def draw_wink_r(self, ctx):
-        self.draw_pixel(ctx, -4, self.eye_offset, x_count=2, y_count=2, colour=self.eye)
-        self.draw_pixel(ctx, 3, self.eye_offset, x_count=2, colour=self.eye)
-        self.draw_pixel(ctx, 3, self.eye_offset +1, colour=self.eye)
-
-        self.draw_pixel(ctx, 8, self.cat_offset + 1, colour=(1,0.5,0.5))
-        self.draw_pixel(ctx, 10, self.cat_offset + 1, colour=(1,0.5,0.5))
-        self.draw_pixel(ctx, 8, self.cat_offset + 2, x_count=3, colour=(1,0.5,0.5))
-        self.draw_pixel(ctx, 9, self.cat_offset + 3, colour=(1,0.5,0.5))
-
-    def draw_blink(self, ctx):
-        self.draw_pixel(ctx, -4, self.eye_offset + 1, x_count=3, colour=self.eye)
-        self.draw_pixel(ctx, 2, self.eye_offset + 1, x_count=3, colour=self.eye)
-    
-    def draw_ears(self, ctx):
-        # Ear L
-        self.draw_pixel(ctx, -6, self.cat_offset -1, x_count=3)
-        self.draw_pixel(ctx, -6, self.cat_offset -2, x_count=2)
-        self.draw_pixel(ctx, -6, self.cat_offset -3)
-        # Ear R
-        self.draw_pixel(ctx, 4, self.cat_offset -1, x_count=3)
-        self.draw_pixel(ctx, 5, self.cat_offset -2, x_count=2)
-        self.draw_pixel(ctx, 6, self.cat_offset -3)
-
-    def draw_ear_twitch_l(self, ctx):
-        # Ear L
-        self.draw_pixel(ctx, -5, self.cat_offset -1, x_count=3)
-        self.draw_pixel(ctx, -4, self.cat_offset -2, x_count=2)
-        self.draw_pixel(ctx, -3, self.cat_offset -3)
-        self.draw_pixel(ctx, -6, self.cat_offset, colour=self.bg)
-        # Ear R
-        self.draw_pixel(ctx, 4, self.cat_offset -1, x_count=3)
-        self.draw_pixel(ctx, 5, self.cat_offset -2, x_count=2)
-        self.draw_pixel(ctx, 6, self.cat_offset -3)
-    
-    def draw_ear_twitch_r(self, ctx):
-        # Ear L
-        self.draw_pixel(ctx, -6, self.cat_offset -1, x_count=3)
-        self.draw_pixel(ctx, -6, self.cat_offset -2, x_count=2)
-        self.draw_pixel(ctx, -6, self.cat_offset -3)
-        # Ear R
-        self.draw_pixel(ctx, 3, self.cat_offset -1, x_count=3)
-        self.draw_pixel(ctx, 3, self.cat_offset -2, x_count=2)
-        self.draw_pixel(ctx, 3, self.cat_offset -3)
-        self.draw_pixel(ctx, 6, self.cat_offset, colour=self.bg)
     
     def draw(self, ctx):
         clear_background(ctx)
-        ctx.rgb(*self.bg).rectangle(-120,-120,240,240).fill()
+        ctx.rgb(*self.pallet.bg).rectangle(-120,-120,240,240).fill()
 
         # Face
-        self.draw_pixel(ctx, -6, self.cat_offset, x_count=13, y_count=6)
-        self.draw_pixel(ctx, -5, self.cat_offset+6, x_count=11)
-        self.draw_pixel(ctx, -4, self.cat_offset+7, x_count=9)
+        self.base_face.frame(ctx)
 
-        # Ears
-        if self.animation is EAR_TWITCH_L:
-            self.draw_ear_twitch_l(ctx)
-        elif self.animation is EAR_TWITCH_R:
-            self.draw_ear_twitch_r(ctx)
+        if self.animation:
+            self.animation.frame(ctx)
         else:
-            self.draw_ears(ctx)
-
-        # Eyes
-        if self.animation is BLINK:
-            self.draw_blink(ctx)
-        elif self.animation is WINK_L:
-            self.draw_wink_l(ctx)
-        elif self.animation is WINK_R:
-            self.draw_wink_r(ctx)
-        elif self.animation is IDEA:
-            self.draw_idea(ctx)
-        elif self.animation is EXCLAIM:
-            self.draw_exclaim(ctx)
-        else:
-            self.draw_eyes(ctx)
+            self.base_extras.frame(ctx)
 
 
         ctx.begin_path()
@@ -201,6 +263,6 @@ class PixelCat(app.App):
 
             # TODO hide partial edge pixels
 
-        ctx.rgb(*self.scan).stroke()
+        ctx.rgb(*self.pallet.scan).stroke()
 
 __app_export__ = PixelCat
